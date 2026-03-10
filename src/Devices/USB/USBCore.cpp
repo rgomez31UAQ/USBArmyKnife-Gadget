@@ -163,7 +163,7 @@ void USBCore::begin(Preferences &prefs)
     TinyUSBDevice.setVersion(version);
 
     const uint16_t deviceVersion = prefs.getUShort(USB_DeviceVersion, USB_DeviceVersion_Default);
-    TinyUSBDevice.setVersion(deviceVersion);
+    TinyUSBDevice.setDeviceVersion(deviceVersion);
 
     const String manufacturerArdString = prefs.getString(USB_DeviceManufacturer, USB_DeviceManufacturer_Default);
     manufacturer = std::string(manufacturerArdString.c_str());
@@ -173,22 +173,40 @@ void USBCore::begin(Preferences &prefs)
     product = std::string(productArdString.c_str());
     TinyUSBDevice.setProductDescriptor(product.c_str());
   }
+
+  // now all our descriptors are set up we can now begin allowing the host OS to
+  // talk to us
+  tud_connect();
+
+  // we now wait up to a second for the host to 'mount' us
+  // we might not even be connected to a USB device (battery) so don't want too long
+  for (uint8_t counter = 0; counter < 10 && (!TinyUSBDevice.ready() || !TinyUSBDevice.mounted()); ++counter)
+  {
+    delay(100);
+  }
+
+  if (!TinyUSBDevice.ready() || !TinyUSBDevice.mounted())
+  {
+    Debug::Log.error(LOG_USB, "Timeout waiting for USB to mount");
+  }
 }
 
 void USBCore::reset()
 {
-  if (TinyUSBDevice.ready() && TinyUSBDevice.mounted())
+  if (!TinyUSBDevice.ready())
   {
-    Debug::Log.info(LOG_USB, "USB reset");
+    Debug::Log.error(LOG_USB, "USB not ready, continuing");
+  }
 
-    tud_disconnect();
-    delay(250);
-    tud_connect();
-  }
-  else
+  if (!TinyUSBDevice.mounted())
   {
-    Debug::Log.info(LOG_USB, "USB not ready or not mounted");
+    Debug::Log.error(LOG_USB, "USB not mounted, continuing");
   }
+
+  tud_disconnect();
+  delay(250);
+  tud_connect();
+  Debug::Log.info(LOG_USB, "USB reset");
 }
 
 void USBCore::loop(Preferences &prefs)
