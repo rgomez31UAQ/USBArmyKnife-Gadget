@@ -56,13 +56,6 @@ void USBHID::begin(Preferences &prefs)
         usb_hid->setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
         usb_hid->setStringDescriptor("HID Composite");
         usb_hid->begin();
-
-        if (TinyUSBDevice.mounted())
-        {
-            TinyUSBDevice.detach();
-            delay(10);
-            TinyUSBDevice.attach();
-        }
     }
 }
 

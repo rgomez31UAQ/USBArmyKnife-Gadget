@@ -56,6 +56,11 @@ static void displayMessage(const char* heading, const char* value = nullptr, boo
 
 void setup()
 {
+  // first thing, tear USB down. We don't know what state the
+  // boot loader could have been left it in. Stop responding and the host OS should
+  // forget about us and tear down
+  tud_disconnect();
+
   prefs.begin("usbarmyknife");
 
   // First set up our core components / hw
